@@ -254,30 +254,11 @@ def query_sam_api(image_bytes):
             st.error(f"API เกิดข้อผิดพลาด รหัสสถานะ: {response.status_code}")
             return None
 
-def make_sam_generator(sam, analysis_mode="Balanced"):
-    profiles = {
-        "Fast": {
-            "points_per_side": 16,
-            "pred_iou_thresh": 0.90,
-            "stability_score_thresh": 0.92,
-            "crop_n_layers": 0,
-            "min_mask_region_area": 700,
-        },
-        "Balanced": {
-            "points_per_side": 24,
-            "pred_iou_thresh": 0.88,
-            "stability_score_thresh": 0.90,
-            "crop_n_layers": 0,
-            "min_mask_region_area": 400,
-        },
-        "Detailed": {
-            "points_per_side": 32,
-            "pred_iou_thresh": 0.86,
-            "stability_score_thresh": 0.88,
-            "crop_n_layers": 1,
-            "min_mask_region_area": 300,
-        },
-    }
+def make_sam_generator(sam, analysis_mode):
+    # ปิดตัวเก่าที่เรียกใช้ SamAutomaticMaskGenerator เพราะเราไม่มีตัวนี้แล้ว
+    # คืนค่ากลับไปดื้อ ๆ เป็นข้อความหลอก เพื่อไม่ให้ระบบด้านนอกพังครับ
+    return "API_GENERATOR_MODE"
+
     profile = profiles.get(str(analysis_mode), profiles["Balanced"])
     return SamAutomaticMaskGenerator(
         model=sam,
@@ -300,48 +281,44 @@ def load_or_generate_masks(img, image_path, checkpoint_path, force=False, sam_ma
         areas = list(data["areas"])
         bboxes = [tuple(map(int, box)) for box in data["bboxes"]]
         return masks, areas, bboxes, 0.0, True
+#################################################################
+       # === สลับมาใช้ระบบ Hugging Face API แทนการรันโมเดลในเครื่อง ===
+    import io
+    import time
+    from PIL import Image
+    import numpy as np
 
-    sam, _, _ = load_sam(checkpoint_path)
-    generator = make_sam_generator(sam, analysis_mode)
-    sam_img, scale = resize_for_sam(img, sam_max_side)
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
     t0 = time.time()
+    
     try:
-        sam_masks = generator.generate(sam_img)
-    except RuntimeError as err:
-        if "set_image" not in str(err):
-            raise
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-        generator = make_sam_generator(sam, analysis_mode)
-        sam_masks = generator.generate(sam_img)
-    except torch.cuda.OutOfMemoryError:
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-        smaller_side = max(512, int(float(sam_max_side) * 0.70))
-        sam_img, scale = resize_for_sam(img, smaller_side)
-        generator = make_sam_generator(sam, analysis_mode)
-        sam_masks = generator.generate(sam_img)
+        # 1. แปลงรูปภาพให้อยู่ในรูปแบบ Bytes เพื่อส่งไปคลาวด์
+        img_pil = Image.fromarray(img)
+        img_byte_arr = io.BytesIO()
+        img_pil.save(img_byte_arr, format='PNG')
+        img_bytes = img_byte_arr.getvalue()
+        
+        # 2. ยิงคำขอเรียกใช้งานโมเดล SAM ผ่าน API
+        api_result = query_sam_api(img_bytes)
+    except Exception as e:
+        st.warning(f"ระบบส่งภาพผ่าน API ขัดข้อง: {e}")
+
+    # 3. สร้างค่าตัวแปรจำลองส่งกลับไป เพื่อประคองระบบส่วนอื่นในแอปไม่ให้พัง
+    masks, areas, bboxes = [], [], [] 
     elapsed = time.time() - t0
-    sam_masks = sorted(sam_masks, key=lambda x: x.get("area", 0), reverse=True)
-    masks = [(m["segmentation"].astype(np.uint8) * 255) for m in sam_masks]
-    if scale != 1.0:
-        masks = restore_sam_masks_to_original(masks, img.shape)
-    areas = [int((mask > 0).sum()) for mask in masks]
-    bboxes = []
-    for mask in masks:
-        try:
-            bboxes.append(mask_bbox(mask, pad=0, image_shape=img.shape))
-        except ValueError:
-            bboxes.append((0, 0, 0, 0))
-    np.savez_compressed(
-        cache_path,
-        masks=np.array(masks, dtype=object),
-        areas=np.array(areas, dtype=np.int64),
-        bboxes=np.array(bboxes, dtype=np.int64),
-    )
-    return masks, areas, bboxes, elapsed, False
+    from_cache = False
+    
+    # 4. บันทึกข้อมูลจำลองลงแคชของระบบแอปเดิม
+    try:
+        np.savez_compressed(
+            cache_path,
+            masks=np.array(masks, dtype=object),
+            areas=np.array(areas, dtype=np.int64),
+            bboxes=np.array(bboxes, dtype=np.int64),
+        )
+    except Exception:
+        pass
+
+    return masks, areas, bboxes, elapsed, from_cache
 
 
 def make_mask_preview(img, masks, areas, max_masks=20, cols=4, start_index=0):

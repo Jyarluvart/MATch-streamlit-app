@@ -40,7 +40,6 @@ SDXL_API_URL = "https://huggingface.co"
 import streamlit.components.v1 as components
 import torch
 from PIL import Image, ImageOps
-from segment_anything import SamAutomaticMaskGenerator, sam_model_registry
 from streamlit_drawable_canvas import st_canvas
 from matplotlib.backends.backend_pdf import PdfPages
 

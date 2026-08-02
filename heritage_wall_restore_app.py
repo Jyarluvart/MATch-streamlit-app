@@ -38,7 +38,6 @@ HF_TOKEN = st.secrets["HF_TOKEN"]
 SDXL_API_URL = "https://huggingface.co"
 
 import streamlit.components.v1 as components
-import torch
 from PIL import Image, ImageOps
 from streamlit_drawable_canvas import st_canvas
 from matplotlib.backends.backend_pdf import PdfPages

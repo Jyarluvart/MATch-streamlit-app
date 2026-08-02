@@ -2,5 +2,9 @@ streamlit
 opencv-python-headless
 requests
 Pillow
-
+matplotlib
+numpy
+pandas
+torch --extra-index-url https://pytorch.org
+streamlit-drawable-canvas
 --extra-index-url ... 

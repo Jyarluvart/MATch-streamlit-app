@@ -33,9 +33,17 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 import streamlit as st
-
+##
+import requests
+import io
+from PIL import Image
+##################################################
 HF_TOKEN = st.secrets["HF_TOKEN"]
 SDXL_API_URL = "https://huggingface.co"
+# ลิงก์ API ของโมเดล SAM (Segment Anything) ของ Meta
+SAM_API_URL = "https://huggingface.co"
+headers = {"Authorization": f"Bearer {HF_TOKEN}"}
+#################################################
 
 import streamlit.components.v1 as components
 from PIL import Image, ImageOps
@@ -229,14 +237,22 @@ def image_hash(path):
     return h.hexdigest()[:16]
 
 
+# 2. ปรับฟังก์ชันใหม่ ไม่ต้องโหลดไฟล์ .pth อีกต่อไปแล้ว
 @st.cache_resource(show_spinner=False)
-def load_sam(checkpoint_path):
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    dtype = torch.float16 if device == "cuda" else torch.float32
-    sam = sam_model_registry["vit_b"](checkpoint=checkpoint_path)
-    sam.to(device=device)
-    return sam, device, dtype
+def load_sam(checkpoint_path=None):
+    # คืนค่าสถานะจำลองส่งกลับไป เพื่อไม่ให้โค้ดส่วนอื่นพัง
+    # (เนื่องจากย้ายไปคำนวณบน API คลาวด์แทนแล้ว)
+    return "API_MODE", "cpu", "float32"
 
+# 3. ฟังก์ชันสำหรับส่งรูปภาพไปตัดเส้นขอบผ่าน API
+def query_sam_api(image_bytes):
+    with st.spinner("กำลังส่งภาพไปประมวลผลตัดขอบกำแพงผ่าน API..."):
+        response = requests.post(SAM_API_URL, headers=headers, data=image_bytes)
+        if response.status_code == 200:
+            return response.content
+        else:
+            st.error(f"API เกิดข้อผิดพลาด รหัสสถานะ: {response.status_code}")
+            return None
 
 def make_sam_generator(sam, analysis_mode="Balanced"):
     profiles = {

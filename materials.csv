@@ -1,0 +1,10 @@
+material_key,label,source,category,mode,width_mm,height_mm,texture_file
+terracotta_tile,Terracotta tile,PB16,masonry_substitute,texture_tile,50.0,200.0,terracotta.jpg
+cast_stone_panel,Cast stone panel,PB16,masonry_substitute,texture_tile,300.0,300.0,cast_stone.jpg
+precast_concrete,Precast concrete panel,PB16,masonry_substitute,texture_tile,300.0,300.0,precast.jpg
+frc_panel,Fiber reinforced concrete,PB16,masonry_substitute,texture_tile,300.0,300.0,frc.jpg
+gfrp_panel,Glass fiber reinforced polymer,PB16,masonry_substitute,texture_tile,300.0,300.0,gfrp.jpg
+blue_ceramic_tile,Blue ceramic tile,custom,contemporary_infill,texture_tile,50.0,50.0,blue_tile.jpg
+glass_block,Glass block,custom,contemporary_infill,texture_tile,190.0,190.0,glass_block.jpg
+lime_mortar,Lime mortar patch,traditional,compatible_repair,procedural_fill,0.0,0.0,
+cotto_tangerine_green_hyg,COTTO Tangerine Green (HYG),user_catalog,tile,texture_tile,250.0,400.0,cotto_tangerine_green_hyg.jpg

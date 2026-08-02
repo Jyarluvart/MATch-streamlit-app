@@ -5,6 +5,5 @@ Pillow
 matplotlib
 numpy
 pandas
-torch --extra-index-url https://pytorch.org
 streamlit-drawable-canvas
-git+https://github.com
+

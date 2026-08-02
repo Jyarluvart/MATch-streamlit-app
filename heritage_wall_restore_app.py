@@ -3619,8 +3619,9 @@ if not Path(checkpoint_path).exists():
     st.stop()
 
 img = pil_to_np_rgb(Image.open(image_path))
-device = "cuda" if torch.cuda.is_available() else "cpu"
-dtype = torch.float16 if device == "cuda" else torch.float32
+# บังคับให้เป็นค่าปกติ ไม่ต้องเรียกใช้ไลบรารี torch ในเครื่องให้พังอีกต่อไป
+device = "cpu"
+dtype = "float32"
 sam_preview_img, sam_preview_scale = resize_for_sam(img, int(sam_max_side))
 st.caption(
     f"Device: {device} | Original: {img.shape[1]} x {img.shape[0]} px | "
